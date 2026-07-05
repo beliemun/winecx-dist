@@ -17,7 +17,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install bison ccache gettext mingw-w64 pkgconfig freetype gnutls libpcap sdl2 molten-vk vulkan-loader vulkan-headers
+          brew install bison ccache gettext mingw-w64 pkgconfig freetype gnutls libpcap sdl2 molten-vk vulkan-loader vulkan-headers mesa mesa-glu
 
       - uses: hendrikmuhs/ccache-action@v1
         with:
