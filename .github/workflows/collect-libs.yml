@@ -13,7 +13,7 @@ jobs:
       - name: Collect dylibs
         run: |
           mkdir -p libs
-          for pkg in freetype gnutls libpcap sdl2 molten-vk vulkan-loader mesa mesa-glu gettext libpng nettle libtasn1 libidn2 libunistring p11-kit gmp brotli zstd libx11 libxext libxfixes xorgproto libxcb; do
+          for pkg in freetype gnutls libpcap sdl2 molten-vk vulkan-loader mesa mesa-glu gettext libpng nettle libtasn1 libidn2 libunistring p11-kit gmp brotli zstd libx11 libxext libxfixes xorgproto libxcb llvm spirv-tools spirv-llvm-translator libxau xcb-util-keysyms libxdmcp; do
             P=$(brew --prefix $pkg 2>/dev/null) || continue
             [ -d "$P/lib" ] && cp -a "$P/lib/"*.dylib libs/ 2>/dev/null || true
           done
@@ -24,6 +24,6 @@ jobs:
       - name: Upload
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: libs-1
+          tag_name: libs-2
           name: intel brew libs
           files: brew-intel-libs.tar.gz
