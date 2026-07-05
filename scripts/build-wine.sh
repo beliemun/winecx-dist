@@ -40,8 +40,8 @@ test -x "${WORKDIR}/sources/wine/configure"
 endgroup
 
 group "Apply portability_subset patch"
-python3 "${SCRIPTDIR}/patch_portability.py" "${WORKDIR}/sources/wine/dlls/winevulkan/vulkan_thunks.c"
-touch "${WORKDIR}/sources/wine/dlls/winevulkan/vulkan_thunks.c" "${WORKDIR}/sources/wine/dlls/winevulkan/vulkan_thunks.h"
+python3 "${SCRIPTDIR}/patch_portability.py" "${WORKDIR}/sources/wine/dlls/win32u/vulkan.c"
+touch "${WORKDIR}/sources/wine/dlls/win32u/vulkan.c" "${WORKDIR}/sources/wine/dlls/win32u/vulkan.c"
 endgroup
 
 group "Configure environment"
