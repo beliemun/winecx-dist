@@ -13,17 +13,19 @@ jobs:
       - name: Collect dylibs
         run: |
           mkdir -p libs
-          for pkg in freetype gnutls libpcap sdl2 molten-vk vulkan-loader mesa mesa-glu gettext libpng nettle libtasn1 libidn2 libunistring p11-kit gmp brotli zstd libx11 libxext libxfixes xorgproto libxcb llvm spirv-tools spirv-llvm-translator libxau xcb-util-keysyms libxdmcp; do
+          for pkg in freetype gnutls libpcap sdl2 molten-vk vulkan-loader mesa mesa-glu gettext libpng nettle libtasn1 libidn2 libunistring p11-kit gmp brotli zstd libx11 libxext libxfixes xorgproto libxcb llvm spirv-tools spirv-llvm-translator libxau xcb-util-keysyms libxdmcp xz z3; do
             P=$(brew --prefix $pkg 2>/dev/null) || continue
             [ -d "$P/lib" ] && cp -a "$P/lib/"*.dylib libs/ 2>/dev/null || true
           done
           # 의존성 폐쇄를 위해 opt 전체에서 링크된 dylib도 수집
           ls libs/ | head -50
+          PYF=$(ls -d /usr/local/opt/python@3*/Frameworks/Python.framework/Versions/*/Python 2>/dev/null | head -1)
+          [ -n "$PYF" ] && cp "$PYF" libs/Python
           tar -czf brew-intel-libs.tar.gz libs
           ls -lh brew-intel-libs.tar.gz
       - name: Upload
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: libs-2
+          tag_name: libs-3
           name: intel brew libs
           files: brew-intel-libs.tar.gz
