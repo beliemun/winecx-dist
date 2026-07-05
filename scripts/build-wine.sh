@@ -39,6 +39,11 @@ tar -xzf "${TARBALL}" -C "${WORKDIR}"
 test -x "${WORKDIR}/sources/wine/configure"
 endgroup
 
+group "Apply portability_subset patch"
+python3 "${SCRIPTDIR}/patch_portability.py" "${WORKDIR}/sources/wine/dlls/winevulkan/vulkan_thunks.c"
+touch "${WORKDIR}/sources/wine/dlls/winevulkan/vulkan_thunks.c" "${WORKDIR}/sources/wine/dlls/winevulkan/vulkan_thunks.h"
+endgroup
+
 group "Configure environment"
 BREW_PREFIX="$(brew --prefix)"
 export CC="ccache clang"
@@ -57,43 +62,7 @@ endgroup
 group "Configure wine"
 mkdir -p "${BUILDDIR}"
 pushd "${BUILDDIR}" >/dev/null
-"${WORKDIR}/sources/wine/configure" \
-    --prefix= \
-    --disable-tests \
-    --disable-winedbg \
-    --enable-win64 \
-    --enable-archs=i386,x86_64 \
-    --with-coreaudio \
-    --with-cups \
-    --with-freetype \
-    --with-gettext \
-    --with-gnutls \
-    --with-mingw \
-    --with-opencl \
-    --with-pcap \
-    --with-pthread \
-    --with-sdl \
-    --with-unwind \
-    --with-vulkan \
-    --without-alsa \
-    --without-capi \
-    --without-dbus \
-    --without-fontconfig \
-    --without-gettextpo \
-    --without-gphoto \
-    --without-gssapi \
-    --without-gstreamer \
-    --without-inotify \
-    --without-krb5 \
-    --without-netapi \
-    --with-opengl \
-    --without-oss \
-    --without-pulse \
-    --without-sane \
-    --without-udev \
-    --without-usb \
-    --without-v4l2 \
-    --without-x
+"${WORKDIR}/sources/wine/configure"     --prefix=     --disable-tests     --disable-winedbg     --enable-win64     --enable-archs=i386,x86_64     --with-coreaudio     --with-cups     --with-freetype     --with-gettext     --with-gnutls     --with-mingw     --with-opencl     --with-pcap     --with-pthread     --with-sdl     --with-unwind     --with-vulkan     --without-alsa     --without-capi     --without-dbus     --without-fontconfig     --without-gettextpo     --without-gphoto     --without-gssapi     --without-gstreamer     --without-inotify     --without-krb5     --without-netapi     --with-opengl     --without-oss     --without-pulse     --without-sane     --without-udev     --without-usb     --without-v4l2     --without-x
 popd >/dev/null
 endgroup
 
