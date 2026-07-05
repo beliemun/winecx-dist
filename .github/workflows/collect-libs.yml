@@ -1,0 +1,29 @@
+name: Collect brew libs
+on:
+  workflow_dispatch:
+jobs:
+  collect:
+    runs-on: macos-15-intel
+    permissions:
+      contents: write
+    steps:
+      - name: Install dependencies
+        run: |
+          brew install freetype gnutls libpcap sdl2 molten-vk vulkan-loader mesa mesa-glu gettext
+      - name: Collect dylibs
+        run: |
+          mkdir -p libs
+          for pkg in freetype gnutls libpcap sdl2 molten-vk vulkan-loader mesa mesa-glu gettext libpng nettle libtasn1 libidn2 libunistring p11-kit gmp brotli zstd libx11 libxext libxfixes xorgproto libxcb; do
+            P=$(brew --prefix $pkg 2>/dev/null) || continue
+            [ -d "$P/lib" ] && cp -a "$P/lib/"*.dylib libs/ 2>/dev/null || true
+          done
+          # 의존성 폐쇄를 위해 opt 전체에서 링크된 dylib도 수집
+          ls libs/ | head -50
+          tar -czf brew-intel-libs.tar.gz libs
+          ls -lh brew-intel-libs.tar.gz
+      - name: Upload
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: libs-1
+          name: intel brew libs
+          files: brew-intel-libs.tar.gz
