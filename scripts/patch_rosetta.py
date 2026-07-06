@@ -1,37 +1,52 @@
 #!/usr/bin/env python3
-# Rosetta 2 workaround for Blizzard anti-cheat (D2R_loader.dll) deadlock.
-# 파일 basename으로 분기:
-#   sync.c   : futex_wait/wake가 os_sync_wait_on_address(macOS14.4+ 신 API) 대신 구 __ulock 사용
-#   server.c : inproc(in-process futex 동기화) 비활성 → 모든 대기를 wineserver(Mach) 경로로 강제
-# 목적: 유저공간 원자 compare-and-wait(Rosetta TSO 오처리 의심)를 피해 데드락 우회.
+# Rosetta 2 workaround for Blizzard anti-cheat (D2R_loader.dll) startup deadlock.
+#
+# 진단(스택 샘플): 안티치트가 워커 스레드 4개를 SuspendThread로 정지시킨 뒤,
+# 컨트롤러 스레드가 그 정지된 워커들이 시그널하기를 무한 대기 → Rosetta 타이밍
+# 차이로 데드락(0.7초, 0% CPU, 창 없음). Wine 동기화 프리미티브(futex/inproc/msync)
+# 교체로는 해결 안 됨(2회 검증) → 서스펜션 자체를 무력화한다.
+#
+# 패치: NtSuspendThread를 실제 정지 없이 즉시 STATUS_SUCCESS 반환.
+# 안티치트가 "정지"시킨 워커가 실제론 계속 실행 → 시그널 도달 → 데드락 소멸.
 import sys, os
 
 path = sys.argv[1]
 base = os.path.basename(path)
 src = open(path).read()
 
-if base == "sync.c":
-    old = "#ifdef MAC_OS_VERSION_14_4\n    if (__builtin_available( macOS 14.4, * ))"
-    new = "#if 0 /* rosetta: force __ulock, skip os_sync_wait_on_address */\n    if (__builtin_available( macOS 14.4, * ))"
-    n = src.count(old)
-    if n != 2:
-        print(f"ERROR sync.c: expected 2 os_sync blocks, found {n}", file=sys.stderr); sys.exit(1)
-    src = src.replace(old, new)
-    open(path, "w").write(src)
-    print(f"sync.c: patched {n} os_sync blocks -> #if 0 (force __ulock)")
+if base == "thread.c":
+    old = """NTSTATUS WINAPI NtSuspendThread( HANDLE handle, ULONG *count )
+{
+    unsigned int ret;
 
-elif base == "server.c":
-    old = ("                inproc_device_fd = wine_server_receive_fd( &handle );\n"
-           "                assert( handle == reply->inproc_device );")
-    new = ("                inproc_device_fd = wine_server_receive_fd( &handle );\n"
-           "                assert( handle == reply->inproc_device );\n"
-           "                close( inproc_device_fd ); inproc_device_fd = -1; /* rosetta: disable inproc, force server sync */")
+    SERVER_START_REQ( suspend_thread )
+    {
+        req->handle = wine_server_obj_handle( handle );
+        if (!(ret = wine_server_call( req )))
+        {
+            if (count) *count = reply->count;
+        }
+    }
+    SERVER_END_REQ;
+    return ret;
+}"""
+    new = """NTSTATUS WINAPI NtSuspendThread( HANDLE handle, ULONG *count )
+{
+    /* rosetta workaround: no-op suspend. Blizzard anti-cheat (D2R_loader) suspends
+     * its own worker threads then waits for them to signal; under Rosetta 2 the
+     * timing deadlocks. Not actually suspending keeps the workers running so they
+     * still signal, breaking the deadlock. */
+    if (count) *count = 0;
+    return STATUS_SUCCESS;
+}"""
     n = src.count(old)
     if n != 1:
-        print(f"ERROR server.c: expected 1 inproc assign, found {n}", file=sys.stderr); sys.exit(1)
+        print(f"ERROR thread.c: expected 1 NtSuspendThread body, found {n}", file=sys.stderr)
+        sys.exit(1)
     src = src.replace(old, new)
     open(path, "w").write(src)
-    print("server.c: inproc disabled (close fd, keep -1)")
+    print("thread.c: NtSuspendThread -> no-op (return SUCCESS)")
 
 else:
-    print(f"ERROR: unexpected file {base}", file=sys.stderr); sys.exit(1)
+    print(f"ERROR: unexpected file {base}", file=sys.stderr)
+    sys.exit(1)
