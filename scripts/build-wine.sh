@@ -41,6 +41,7 @@ endgroup
 
 group "Apply portability_subset patch"
 python3 "${SCRIPTDIR}/patch_portability.py" "${WORKDIR}/sources/wine/dlls/winevulkan/loader.c"
+python3 "${SCRIPTDIR}/patch_d24.py" "${WORKDIR}/sources/wine/dlls/winevulkan/vulkan_thunks.c"
 touch "${WORKDIR}/sources/wine/dlls/winevulkan/loader.c" "${WORKDIR}/sources/wine/dlls/winevulkan/loader.c"
 endgroup
 
